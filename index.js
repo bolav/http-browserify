@@ -1,6 +1,6 @@
 var http = module.exports;
 var EventEmitter = require('events').EventEmitter;
-var Request = require('./lib/request');
+var Request = require('./lib/request-fetch');
 var url = require('url')
 
 http.request = function (params, cb) {
@@ -9,7 +9,7 @@ http.request = function (params, cb) {
     }
     if (!params) params = {};
     if (!params.host && !params.port) {
-        params.port = parseInt(window.location.port, 10);
+        params.port = 80;
     }
     if (!params.host && params.hostname) {
         params.host = params.hostname;
@@ -19,12 +19,12 @@ http.request = function (params, cb) {
         if (params.scheme) {
             params.protocol = params.scheme + ':';
         } else {
-            params.protocol = window.location.protocol;
+            params.protocol = 'http:';
         }
     }
 
     if (!params.host) {
-        params.host = window.location.hostname || window.location.host;
+        params.host = 'localhost';
     }
     if (/:/.test(params.host)) {
         if (!params.port) {
@@ -34,7 +34,7 @@ http.request = function (params, cb) {
     }
     if (!params.port) params.port = params.protocol == 'https:' ? 443 : 80;
     
-    var req = new Request(new xhrHttp, params);
+    var req = new Request(params);
     if (cb) req.on('response', cb);
     return req;
 };
@@ -48,42 +48,6 @@ http.get = function (params, cb) {
 
 http.Agent = function () {};
 http.Agent.defaultMaxSockets = 4;
-
-var xhrHttp = (function () {
-    if (typeof window === 'undefined') {
-        throw new Error('no window object present');
-    }
-    else if (window.XMLHttpRequest) {
-        return window.XMLHttpRequest;
-    }
-    else if (window.ActiveXObject) {
-        var axs = [
-            'Msxml2.XMLHTTP.6.0',
-            'Msxml2.XMLHTTP.3.0',
-            'Microsoft.XMLHTTP'
-        ];
-        for (var i = 0; i < axs.length; i++) {
-            try {
-                var ax = new(window.ActiveXObject)(axs[i]);
-                return function () {
-                    if (ax) {
-                        var ax_ = ax;
-                        ax = null;
-                        return ax_;
-                    }
-                    else {
-                        return new(window.ActiveXObject)(axs[i]);
-                    }
-                };
-            }
-            catch (e) {}
-        }
-        throw new Error('ajax not supported in this browser')
-    }
-    else {
-        throw new Error('ajax not supported in this browser');
-    }
-})();
 
 http.STATUS_CODES = {
     100 : 'Continue',
